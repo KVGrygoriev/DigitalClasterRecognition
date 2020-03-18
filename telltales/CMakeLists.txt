@@ -28,6 +28,25 @@ find_package(OpenCV 3.3.1 REQUIRED
 add_executable(demo_telltales
   main.cpp
 )
+
+target_compile_options(demo_telltales PRIVATE
+    -Werror
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wcast-align
+    -Wcast-qual
+    -Wconversion
+    -Wctor-dtor-privacy
+    -Wenum-compare
+    -Wfloat-equal
+    -Wnon-virtual-dtor
+    -Wold-style-cast
+    -Woverloaded-virtual
+    -Wredundant-decls
+    -Wsign-conversion
+    -Wsign-promo)
+
 target_link_libraries(demo_telltales
      stdc++fs
      ${CMAKE_THREAD_LIBS_INIT}
