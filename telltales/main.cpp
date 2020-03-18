@@ -74,7 +74,7 @@ inline void SetRectForFrame(cv::Mat &screen, const cv::Rect &rect) {
 }
 
 template <typename Iter>
-void ParallelMatch(cv::Mat &screen, const cv::Mat &screen_gray, Iter begin,
+void ParallelImageMatch(cv::Mat &screen, const cv::Mat &screen_gray, Iter begin,
                    Iter end) {
   // lambda for drawing matched icon
   auto draw_matched = [&screen](Iter iter, const cv::Rect &rect) {
@@ -109,17 +109,26 @@ void ParallelMatch(cv::Mat &screen, const cv::Mat &screen_gray, Iter begin,
   } else {
     Iter mid = std::next(begin, len / 2);
 
-    // auto handle =
-    //     std::async(std::launch::async,
-    //                ParallelMatch<Iter>, screen, screen_gray, mid, end
-    //     );
     auto handle =
         std::async(std::launch::async, [&screen, &screen_gray, mid, end]() {
-          ParallelMatch<Iter>(screen, screen_gray, mid, end);
+          ParallelImageMatch<Iter>(screen, screen_gray, mid, end);
         });
     (void)handle;
-    ParallelMatch(screen, screen_gray, begin, mid);
+    ParallelImageMatch(screen, screen_gray, begin, mid);
   }
+}
+
+std::vector<IconData> LoadTellTalesIcons() {
+  std::vector<IconData> tell_tales_icons;
+  for (const auto &path : fs::directory_iterator("poc/icons")) {
+    if (path.path().extension() == ".png") {
+      tell_tales_icons.push_back(IconData{
+          path.path().filename().string(),
+          ProcessFrame(cv::imread(path.path().string())), IconData::kNone});
+    }
+  }
+
+  return tell_tales_icons;
 }
 
 } // namespace
@@ -133,14 +142,7 @@ int main() {
     return -1;
   }
 
-  std::vector<IconData> icon_frames;
-  for (const auto &path : fs::directory_iterator("poc/icons")) {
-    if (path.path().extension() == ".png") {
-      icon_frames.push_back(IconData{
-          path.path().filename().string(),
-          ProcessFrame(cv::imread(path.path().string())), IconData::kNone});
-    }
-  }
+  std::vector<IconData> icon_frames = LoadTellTalesIcons();
 
   if (icon_frames.empty()) {
     std::cerr << "Icon list is empty";
@@ -148,15 +150,13 @@ int main() {
   }
 
   cv::Mat frame_gray;
-  bool need_to_detect{false};
   //--- GRAB AND WRITE LOOP
   std::cout << "Start grabbing" << std::endl
             << "Press Esc key to terminate" << std::endl;
+  long long frame_index = 0;
   while (true) {
-    // wait for a new frame from camera and store it into 'frame'
     cap.read(frame);
 
-    // check if we succeeded
     if (frame.empty()) {
       std::cerr << "ERROR! blank frame grabbed\n";
       break;
@@ -164,22 +164,22 @@ int main() {
 
     frame_gray = ProcessFrame(frame);
 
-    need_to_detect = !need_to_detect;
-    if (need_to_detect) {
-      ParallelMatch(frame, frame_gray, icon_frames.begin(), icon_frames.end());
-    } else {
-      // take from cache for perfomance
-      for (auto &icon : icon_frames) {
-        if (!icon.match_cached.empty()) {
-          SetRectForFrame(frame, icon.match_cached);
-        }
-      }
-    }
+    ParallelImageMatch(frame, frame_gray, icon_frames.begin(), icon_frames.end());
 
     // show live and wait for a key with timeout long enough to show images
     cv::imshow("Cluster", frame);
+
+    /*
+        if (!(frame_index % 50)) {
+          std::cout << frame_index << std::endl;
+          cv::waitKey(10000);
+        }
+        */
+
+    ++frame_index;
     if (cv::waitKey(1) >= 0)
       break;
   }
+
   return 0;
 }
