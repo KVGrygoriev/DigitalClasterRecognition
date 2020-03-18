@@ -10,7 +10,8 @@
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/videoio.hpp>
+
+#include "VideoManager.h"
 
 namespace fs = std::experimental::filesystem;
 
@@ -134,14 +135,9 @@ std::vector<IconData> LoadTellTalesIcons() {
 } // namespace
 
 int main() {
+  VideoManager video_manager("poc/video/1.mp4");
   cv::Mat frame;
-  cv::VideoCapture cap;
-  cap.open("poc/video/1.mp4");
-  if (!cap.isOpened()) {
-    std::cerr << "ERROR! Unable to open video\n";
-    return -1;
-  }
-
+  
   std::vector<IconData> icon_frames = LoadTellTalesIcons();
 
   if (icon_frames.empty()) {
@@ -154,14 +150,8 @@ int main() {
   std::cout << "Start grabbing" << std::endl
             << "Press Esc key to terminate" << std::endl;
   long long frame_index = 0;
-  while (true) {
-    cap.read(frame);
-
-    if (frame.empty()) {
-      std::cerr << "ERROR! blank frame grabbed\n";
-      break;
-    }
-
+  while (video_manager.GetFrame(frame)) {
+    
     frame_gray = ProcessFrame(frame);
 
     ParallelImageMatch(frame, frame_gray, icon_frames.begin(), icon_frames.end());
