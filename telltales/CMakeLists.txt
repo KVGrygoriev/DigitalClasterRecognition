@@ -26,6 +26,7 @@ find_package(OpenCV 3.3.1 REQUIRED
 )
 
 add_executable(demo_telltales
+  AnalogMeterDetector.cpp
   VideoManager.cpp
   main.cpp
 )
