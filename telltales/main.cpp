@@ -5,25 +5,23 @@
 #include "TelltalesDetector.h"
 #include "VideoManager.h"
 
+namespace {
+const std::vector<std::pair<int, int>> kAnalogMeterFrameBoundaries{
+    {250, 300}, {460, 580}, {670, 810}, {890, 915}, {925, 965}};
+
+const std::vector<std::pair<cv::MorphTypes, std::string>>
+    transformation_type_array{
+        //{cv::MORPH_CLOSE, "MORPH_CLOSE"}, // has worse results than
+        // MORPH_CLOSE
+        {cv::MORPH_TOPHAT, "MORPH_TOPHAT"}};
+
+const cv::Rect kAnalogSpeedMeterCoordinates{-415, -520, 415, 360};
+
+} // namespace
+
 int main() {
-  const std::vector<std::pair<cv::MorphTypes, std::string>>
-      transformation_type_array{
-          /*
-          {cv::MORPH_ERODE, "MORPH_ERODE"},     // nothing after HoughLinesP
-          {cv::MORPH_HITMISS, "MORPH_HITMISS"}, // nothing after HoughLinesP
-          {cv::MORPH_OPEN, "MORPH_OPEN"},       // nothing after HoughLinesP
-          {cv::MORPH_DILATE, "MORPH_DILATE"},   // a lot of false-positive cases
-                                                // or empty at all
-          {cv::MORPH_GRADIENT, "MORPH_GRADIENT"}, // a lot of false-positive
-                                                  // cases or empty at all
-          {cv::MORPH_BLACKHAT, "MORPH_BLACKHAT"}, // a lot of false-positive
-                                                  // cases or empty at all
-          */
-          {cv::MORPH_CLOSE, "MORPH_CLOSE"},
-          {cv::MORPH_TOPHAT, "MORPH_TOPHAT"}};
-  const cv::Rect kAnalogSpeedMeterCoordinates{-415, -520, 415, 360};
   AnalogMeterDetector asm_detector(kAnalogSpeedMeterCoordinates,
-                                   cv::MORPH_CLOSE, "MORPH_CLOSE");
+                                   cv::MORPH_TOPHAT, "MORPH_TOPHAT");
 
   TelltalesDetector telltales_detector;
   if (!telltales_detector.GetTellTalesCount()) {
@@ -38,29 +36,35 @@ int main() {
   std::cout << "Start grabbing" << std::endl
             << "Press Esc key to terminate" << std::endl;
   long long frame_index = 0;
+  auto analog_meter_frame_window = kAnalogMeterFrameBoundaries.begin();
+
   while (video_manager.GetFrame(frame)) {
 
     telltales_detector.SetImage(frame);
     telltales_detector.Detect();
 
-    asm_detector.SetImage(frame);
+    // perform analog meter widget recognition only when it visible
+    if (analog_meter_frame_window != kAnalogMeterFrameBoundaries.end()) {
+      if (analog_meter_frame_window->first < frame_index &&
+          analog_meter_frame_window->second > frame_index) {
+        asm_detector.SetImage(frame);
+        asm_detector.ApplyHoughLinesP();
+      }
 
-    for (const auto &algorithm : transformation_type_array) {
-      asm_detector.SetMorphTypeTransformation(algorithm.first,
-                                              algorithm.second);
-      // asm_detector.ApplyHoughLines();
-      asm_detector.ApplyHoughLinesP();
+      if (analog_meter_frame_window->second < frame_index) {
+        ++analog_meter_frame_window;
+      }
     }
 
     // show live and wait for a key with timeout long enough to show images
-    // cv::imshow("Cluster", frame);
+    cv::imshow("Cluster", frame);
 
     /*
-        if (!(frame_index % 50)) {
-          std::cout << frame_index << std::endl;
-          cv::waitKey(10000);
-        }
-        */
+    if (!(frame_index % 10)) {
+      std::cout << frame_index << std::endl;
+      cv::waitKey(10000);
+    }
+    */
 
     ++frame_index;
     if (cv::waitKey(1) >= 0)
