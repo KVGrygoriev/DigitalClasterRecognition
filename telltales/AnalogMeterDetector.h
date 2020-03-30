@@ -5,6 +5,11 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+struct Line {
+  cv::Point start_coord;
+  cv::Point end_coord;
+};
+
 class AnalogMeterDetector {
 public:
   AnalogMeterDetector(cv::Rect analog_speed_meter_coordinates,
@@ -22,7 +27,7 @@ public:
 private:
   const cv::Rect analog_meter_coordinates_;
   cv::Point analog_meter_start_coordinates_;
-  std::pair<cv::Point, cv::Point> reference_line_;
+  Line reference_line_;
 
   cv::Mat origin_image_;
   cv::Mat grey_edges_;

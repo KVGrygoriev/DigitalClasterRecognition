@@ -103,18 +103,18 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
                          analog_meter_start_coordinates_.y + l[1]),
                5, cv::Scalar(0, 255, 0));
 
-    cv::line(origin_image_, reference_line_.first, reference_line_.second,
+    cv::line(origin_image_, reference_line_.start_coord, reference_line_.end_coord,
              cv::Scalar(0, 255, 0), 3, cv::LINE_AA);
 
-    cv::circle(origin_image_, reference_line_.first, 5, cv::Scalar(0, 0, 255));
+    cv::circle(origin_image_, reference_line_.start_coord, 5, cv::Scalar(0, 0, 255));
 
     //------------------- angle calculation
     cv::Point a_start(l[0], l[1]);
     cv::Point a_end(l[2], l[3]);
     cv::Point a_vector(a_end.x - a_start.x, a_end.y - a_start.y);
 
-    cv::Point b_vector(reference_line_.second.x - reference_line_.first.x,
-                       reference_line_.second.y - reference_line_.first.y);
+    cv::Point b_vector(reference_line_.end_coord.x - reference_line_.start_coord.x,
+                       reference_line_.end_coord.y - reference_line_.start_coord.y);
 
     auto value = (a_vector.x * b_vector.x + a_vector.y * b_vector.y) /
                  (sqrt(pow(a_vector.x, 2) + pow(a_vector.y, 2)) *
@@ -122,8 +122,7 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
 
     std::cout << "(x,y) = (" << l[0] << "," << l[1] << ")"
               << "; (x,y) = (" << l[2] << "," << l[3] << ")"
-              << "; cos = " << acos(value) * 180 / CV_PI
-              << "; sin = " << asin(value) * 180 / CV_PI << std::endl;
+              << "; cos = " << acos(value) * 180 / CV_PI << std::endl;
   }
 
   // cv::imshow(headline_hint_ + " HoughLinesP", origin_image_);
