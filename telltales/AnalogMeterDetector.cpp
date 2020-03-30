@@ -79,7 +79,65 @@ void AnalogMeterDetector::ApplyHoughLines() {
   // cv::waitKey(0);
 }
 
-Line TurnLineInOppositeDirectionToReferenceLine(const Line &in) { return in; }
+Line AnalogMeterDetector::TurnLineInOppositeDirectionToReferenceLine(
+    const Line &in) const {
+
+  // top hemisphere
+  if (reference_line_.start_coord.y >= in.start_coord.y) {
+    // top left side
+    if (reference_line_.start_coord.x > in.start_coord.x) {
+      if (in.start_coord.x < in.end_coord.x) {
+        return Line{in.end_coord, in.start_coord};
+      } else {
+        return in;
+      }
+    }
+
+    // top right side
+    if (reference_line_.start_coord.x < in.start_coord.x) {
+      if (in.start_coord.x > in.end_coord.x) {
+        return Line{in.end_coord, in.start_coord};
+      } else {
+        return in;
+      }
+    }
+  } else { // bottom hemisphere
+
+    // bottom right side
+    if (reference_line_.start_coord.x < in.start_coord.x) {
+      if (in.start_coord.x > in.end_coord.x) {
+        return Line{in.end_coord, in.start_coord};
+      } else {
+        return in;
+      }
+    }
+
+    // bottom left side
+    if (reference_line_.start_coord.x > in.start_coord.x) {
+      if (in.start_coord.x < in.end_coord.x) {
+        return Line{in.end_coord, in.start_coord};
+      } else {
+        return in;
+      }
+    }
+  }
+
+  // reference_line_.x
+  if (in.start_coord.x < in.end_coord.x)
+    return in;
+
+  // under
+  if ((in.end_coord.x > in.start_coord.x) &&
+      (in.end_coord.y < in.start_coord.y))
+    return in;
+
+  // below
+  if ((in.end_coord.x > in.start_coord.x) &&
+      (in.end_coord.y > in.start_coord.y))
+    return in;
+
+  return in;
+}
 
 void AnalogMeterDetector::ApplyHoughLinesP() {
   cv::Mat line_edges;

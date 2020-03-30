@@ -24,6 +24,8 @@ public:
   void ApplyHoughLines();
   void ApplyHoughLinesP();
 
+  Line TurnLineInOppositeDirectionToReferenceLine(const Line &in) const;
+
 private:
   const cv::Rect analog_meter_coordinates_;
   cv::Point analog_meter_start_coordinates_;
