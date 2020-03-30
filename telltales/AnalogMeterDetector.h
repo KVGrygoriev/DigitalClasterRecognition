@@ -22,6 +22,7 @@ public:
 private:
   const cv::Rect analog_meter_coordinates_;
   cv::Point analog_meter_start_coordinates_;
+  std::pair<cv::Point, cv::Point> reference_line_;
 
   cv::Mat origin_image_;
   cv::Mat grey_edges_;
