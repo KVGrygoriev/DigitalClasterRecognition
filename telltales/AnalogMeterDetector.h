@@ -25,6 +25,7 @@ public:
   void ApplyHoughLinesP();
 
   Line TurnLineInOppositeDirectionToReferenceLine(const Line &in) const;
+  int CalculateAngleRelativeToReferenceLine(const Line& line) const;
 
 private:
   const cv::Rect analog_meter_coordinates_;

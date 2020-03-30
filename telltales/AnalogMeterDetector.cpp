@@ -139,6 +139,33 @@ Line AnalogMeterDetector::TurnLineInOppositeDirectionToReferenceLine(
   return in;
 }
 
+int AnalogMeterDetector::CalculateAngleRelativeToReferenceLine(
+    const Line &line) const {
+  static const int kHalfOfTheSphere = 180;
+
+  cv::Point a_vector(line.end_coord.x - line.start_coord.x,
+                     line.end_coord.y - line.start_coord.y);
+
+  cv::Point b_vector(
+      reference_line_.end_coord.x - reference_line_.start_coord.x,
+      reference_line_.end_coord.y - reference_line_.start_coord.y);
+
+  // get the angle between vectors
+  auto value = (a_vector.x * b_vector.x + a_vector.y * b_vector.y) /
+               (sqrt(pow(a_vector.x, 2) + pow(a_vector.y, 2)) *
+                sqrt(pow(b_vector.x, 2) + pow(b_vector.y, 2)));
+
+  int angle_at_degrees = static_cast<int>(acos(value) * kHalfOfTheSphere /
+                                          CV_PI); // radians to degrees
+
+  // make a correlation in depend on a semi-sphere
+  if (line.start_coord.y > reference_line_.start_coord.y) {
+    angle_at_degrees = kHalfOfTheSphere + (kHalfOfTheSphere - angle_at_degrees);
+  }
+
+  return angle_at_degrees;
+}
+
 void AnalogMeterDetector::ApplyHoughLinesP() {
   cv::Mat line_edges;
   cv::morphologyEx(grey_edges_, line_edges, morph_type_, kKernel);
@@ -169,21 +196,13 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
     cv::circle(origin_image_, reference_line_.start_coord, 5,
                cv::Scalar(0, 0, 255));
 
-    //------------------- angle calculation
-    cv::Point a_vector(detected_line.end_coord.x - detected_line.start_coord.x,
-                       detected_line.end_coord.y - detected_line.start_coord.y);
+    //-------------------
 
-    cv::Point b_vector(
-        reference_line_.end_coord.x - reference_line_.start_coord.x,
-        reference_line_.end_coord.y - reference_line_.start_coord.y);
-
-    auto value = (a_vector.x * b_vector.x + a_vector.y * b_vector.y) /
-                 (sqrt(pow(a_vector.x, 2) + pow(a_vector.y, 2)) *
-                  sqrt(pow(b_vector.x, 2) + pow(b_vector.y, 2)));
+    int angle = CalculateAngleRelativeToReferenceLine(detected_line);
 
     std::cout << "(x,y) = (" << lines[i][0] << "," << lines[i][1] << ")"
               << "; (x,y) = (" << lines[i][2] << "," << lines[i][3] << ")"
-              << "; cos = " << acos(value) * 180 / CV_PI << std::endl;
+              << "; cos = " << angle << std::endl;
   }
 
   // cv::imshow(headline_hint_ + " HoughLinesP", origin_image_);
