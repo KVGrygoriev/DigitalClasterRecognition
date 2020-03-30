@@ -79,49 +79,52 @@ void AnalogMeterDetector::ApplyHoughLines() {
   // cv::waitKey(0);
 }
 
+Line TurnLineInOppositeDirectionToReferenceLine(const Line &in) { return in; }
+
 void AnalogMeterDetector::ApplyHoughLinesP() {
   cv::Mat line_edges;
   cv::morphologyEx(grey_edges_, line_edges, morph_type_, kKernel);
   // cv::imshow("morphologyEx for " + headline_hint_, line_edges);
 
+  Line detected_line;
   std::vector<cv::Vec4i> lines;
   cv::HoughLinesP(line_edges, lines, 1, CV_PI / 180, 90, 70, 3);
 
   for (size_t i = 0; i < lines.size(); i++) {
-    cv::Vec4i l = lines[i];
 
-    cv::line(origin_image_,
-             cv::Point(analog_meter_start_coordinates_.x + l[0],
-                       analog_meter_start_coordinates_.y + l[1]),
-             cv::Point(analog_meter_start_coordinates_.x + l[2],
-                       analog_meter_start_coordinates_.y + l[3]),
+    detected_line = TurnLineInOppositeDirectionToReferenceLine(
+        {cv::Point(analog_meter_start_coordinates_.x + lines[i][0],
+                   analog_meter_start_coordinates_.y + lines[i][1]),
+         cv::Point(analog_meter_start_coordinates_.x + lines[i][2],
+                   analog_meter_start_coordinates_.y + lines[i][3])});
+
+    cv::line(origin_image_, detected_line.start_coord, detected_line.end_coord,
              cv::Scalar(0, 0, 255), 3, cv::LINE_AA);
 
     //--------------------------- visual DBG section
-    cv::circle(origin_image_,
-               cv::Point(analog_meter_start_coordinates_.x + l[0],
-                         analog_meter_start_coordinates_.y + l[1]),
-               5, cv::Scalar(0, 255, 0));
+    cv::circle(origin_image_, detected_line.start_coord, 5,
+               cv::Scalar(0, 255, 0));
 
-    cv::line(origin_image_, reference_line_.start_coord, reference_line_.end_coord,
-             cv::Scalar(0, 255, 0), 3, cv::LINE_AA);
+    cv::line(origin_image_, reference_line_.start_coord,
+             reference_line_.end_coord, cv::Scalar(0, 255, 0), 3, cv::LINE_AA);
 
-    cv::circle(origin_image_, reference_line_.start_coord, 5, cv::Scalar(0, 0, 255));
+    cv::circle(origin_image_, reference_line_.start_coord, 5,
+               cv::Scalar(0, 0, 255));
 
     //------------------- angle calculation
-    cv::Point a_start(l[0], l[1]);
-    cv::Point a_end(l[2], l[3]);
-    cv::Point a_vector(a_end.x - a_start.x, a_end.y - a_start.y);
+    cv::Point a_vector(detected_line.end_coord.x - detected_line.start_coord.x,
+                       detected_line.end_coord.y - detected_line.start_coord.y);
 
-    cv::Point b_vector(reference_line_.end_coord.x - reference_line_.start_coord.x,
-                       reference_line_.end_coord.y - reference_line_.start_coord.y);
+    cv::Point b_vector(
+        reference_line_.end_coord.x - reference_line_.start_coord.x,
+        reference_line_.end_coord.y - reference_line_.start_coord.y);
 
     auto value = (a_vector.x * b_vector.x + a_vector.y * b_vector.y) /
                  (sqrt(pow(a_vector.x, 2) + pow(a_vector.y, 2)) *
                   sqrt(pow(b_vector.x, 2) + pow(b_vector.y, 2)));
 
-    std::cout << "(x,y) = (" << l[0] << "," << l[1] << ")"
-              << "; (x,y) = (" << l[2] << "," << l[3] << ")"
+    std::cout << "(x,y) = (" << lines[i][0] << "," << lines[i][1] << ")"
+              << "; (x,y) = (" << lines[i][2] << "," << lines[i][3] << ")"
               << "; cos = " << acos(value) * 180 / CV_PI << std::endl;
   }
 
