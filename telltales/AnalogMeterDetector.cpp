@@ -122,20 +122,6 @@ Line AnalogMeterDetector::TurnLineInOppositeDirectionToReferenceLine(
     }
   }
 
-  // reference_line_.x
-  if (in.start_coord.x < in.end_coord.x)
-    return in;
-
-  // under
-  if ((in.end_coord.x > in.start_coord.x) &&
-      (in.end_coord.y < in.start_coord.y))
-    return in;
-
-  // below
-  if ((in.end_coord.x > in.start_coord.x) &&
-      (in.end_coord.y > in.start_coord.y))
-    return in;
-
   return in;
 }
 
