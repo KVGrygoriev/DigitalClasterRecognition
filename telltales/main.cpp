@@ -15,8 +15,8 @@ const std::vector<std::pair<cv::MorphTypes, std::string>>
         // MORPH_CLOSE
         {cv::MORPH_TOPHAT, "MORPH_TOPHAT"}};
 
-const cv::Rect kAnalogSpeedMeterCoordinates{-415, -520, 415, 360};
-
+//const cv::Rect kAnalogSpeedMeterCoordinates{-415, -520, 415, 360};
+const cv::Rect kAnalogSpeedMeterCoordinates{-615, -770, 590, 510};
 } // namespace
 
 int main() {
@@ -29,7 +29,7 @@ int main() {
     return 1;
   }
 
-  VideoManager video_manager("poc/video/1.mp4");
+  VideoManager video_manager("poc/video/1080.mp4");
   cv::Mat frame;
 
   //--- GRAB AND WRITE LOOP
