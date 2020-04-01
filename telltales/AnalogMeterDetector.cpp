@@ -173,7 +173,7 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
 
   Line detected_line;
   std::vector<cv::Vec4i> lines;
-  cv::HoughLinesP(line_edges, lines, 1, CV_PI / 180, 90, 70, 3);
+  cv::HoughLinesP(line_edges, lines, 1, CV_PI / 180, 90, 95, 5);
 
   for (size_t i = 0; i < lines.size(); i++) {
 

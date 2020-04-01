@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <iterator>
+#include <string>
 #include <vector>
 
 #include <opencv2/highgui.hpp>
@@ -20,7 +20,7 @@ struct IconData {
 
 class TelltalesDetector {
 public:
-  TelltalesDetector();
+  TelltalesDetector(const cv::Rect &telltales_panel_coordinates);
   ~TelltalesDetector() = default;
 
   void SetImage(const cv::Mat &image);
@@ -30,8 +30,11 @@ public:
 
 private:
   void LoadTellTalesIcons();
-  
+
 private:
+  const cv::Rect telltales_panel_coordinates_;
+  cv::Point telltales_panel_start_coordinates_;
+
   cv::Mat origin_image_;
   cv::Mat grey_edges_;
 

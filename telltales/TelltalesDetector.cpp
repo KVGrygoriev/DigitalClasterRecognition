@@ -49,6 +49,7 @@ cv::Rect DetectPattern(const cv::Mat &frame, const cv::Mat &pattern) {
 }
 
 void ParallelTelltalesMatch(cv::Mat &screen, const cv::Mat &screen_gray,
+                            const cv::Point &coordinates_corection,
                             std::vector<IconData>::iterator begin,
                             std::vector<IconData>::iterator end) {
   // lambda for drawing matched icon
@@ -78,7 +79,7 @@ void ParallelTelltalesMatch(cv::Mat &screen, const cv::Mat &screen_gray,
       cv::Rect rect = DetectPattern(screen_gray, icon.frame);
       {
         std::lock_guard<std::mutex> lock(g_mutex_);
-        draw_matched(begin, rect);
+        draw_matched(begin, rect + coordinates_corection);
       }
       ++begin;
     }
@@ -86,13 +87,16 @@ void ParallelTelltalesMatch(cv::Mat &screen, const cv::Mat &screen_gray,
     std::vector<IconData>::iterator mid = std::next(begin, len / 2);
 
     auto handle =
-        std::async(std::launch::async, [&screen, &screen_gray, mid, end]() {
-          ParallelTelltalesMatch(screen, screen_gray, mid, end);
-        });
+        std::async(std::launch::async,
+                   [&screen, &screen_gray, &coordinates_corection, mid, end]() {
+                     ParallelTelltalesMatch(screen, screen_gray,
+                                            coordinates_corection, mid, end);
+                   });
 
     (void)handle;
 
-    ParallelTelltalesMatch(screen, screen_gray, begin, mid);
+    ParallelTelltalesMatch(screen, screen_gray, coordinates_corection, begin,
+                           mid);
   }
 }
 } // namespace
@@ -106,12 +110,25 @@ cv::Mat ApplyCannyAlgorithm_(const cv::Mat &frame) {
   return result;
 }
 
-TelltalesDetector::TelltalesDetector() { LoadTellTalesIcons(); }
+TelltalesDetector::TelltalesDetector(
+    const cv::Rect &telltales_panel_coordinates)
+    : telltales_panel_coordinates_(telltales_panel_coordinates) {
+  LoadTellTalesIcons();
+}
 
 void TelltalesDetector::SetImage(const cv::Mat &image) {
-  //origin_image_ = image.clone();
+  // origin_image_ = image.clone();
   origin_image_ = image;
   grey_edges_ = ApplyCannyAlgorithm_(image);
+
+  telltales_panel_start_coordinates_ =
+      cv::Point{grey_edges_.cols + telltales_panel_coordinates_.x,
+                grey_edges_.rows + telltales_panel_coordinates_.y};
+
+  grey_edges_ = grey_edges_(cv::Rect{telltales_panel_start_coordinates_.x,
+                                     telltales_panel_start_coordinates_.y,
+                                     telltales_panel_coordinates_.width,
+                                     telltales_panel_coordinates_.height});
 }
 
 size_t TelltalesDetector::GetTellTalesCount() const {
@@ -130,6 +147,7 @@ void TelltalesDetector::LoadTellTalesIcons() {
 }
 
 void TelltalesDetector::Detect() {
-  ParallelTelltalesMatch(origin_image_, grey_edges_, telltales_icons_.begin(),
-                         telltales_icons_.end());
+  ParallelTelltalesMatch(origin_image_, grey_edges_,
+                         telltales_panel_start_coordinates_,
+                         telltales_icons_.begin(), telltales_icons_.end());
 }

@@ -17,13 +17,15 @@ const std::vector<std::pair<cv::MorphTypes, std::string>>
 
 //const cv::Rect kAnalogSpeedMeterCoordinates{-415, -520, 415, 360};
 const cv::Rect kAnalogSpeedMeterCoordinates{-615, -770, 590, 510};
+const cv::Rect kTelltalesPanelCoordinates{-1800, -400, 1700, 300};
+
 } // namespace
 
 int main() {
   AnalogMeterDetector asm_detector(kAnalogSpeedMeterCoordinates,
                                    cv::MORPH_TOPHAT, "MORPH_TOPHAT");
 
-  TelltalesDetector telltales_detector;
+  TelltalesDetector telltales_detector(kTelltalesPanelCoordinates);
   if (!telltales_detector.GetTellTalesCount()) {
     std::cerr << "Icon list is empty";
     return 1;
