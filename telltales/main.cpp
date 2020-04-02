@@ -1,4 +1,5 @@
 #include <iostream>
+#include <math.h>
 #include <vector>
 
 #include "AnalogMeterDetector.h"
@@ -23,6 +24,12 @@ void DrawTextValue(cv::Mat &image, const cv::Point &left_bottom_point,
                    const std::string &text) {
   cv::putText(image, text, left_bottom_point, cv::FONT_HERSHEY_DUPLEX, 1.0,
               CV_RGB(118, 185, 0), 2);
+}
+
+inline int AngleToSpeed(int angle) {
+  static const int kZeroSpeedAngle = 228;
+  static const double kOneDegreeToSpeed = 1.75;
+  return static_cast<int>(round((kZeroSpeedAngle - angle) / kOneDegreeToSpeed));
 }
 
 } // namespace
@@ -58,8 +65,9 @@ int main() {
         asm_detector.SetImage(frame);
         asm_detector.ApplyHoughLinesP();
         DrawTextValue(frame, cv::Point{frame.cols - 500, 100},
-                      "Detected speed is " +
-                          std::to_string(asm_detector.GetAngle()));
+                      "Detected speed is " + std::to_string(AngleToSpeed(
+                                                 asm_detector.GetAngle())));
+        //cv::waitKey(150);
       }
 
       if (analog_meter_frame_window->second < frame_index) {
