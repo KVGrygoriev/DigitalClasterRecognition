@@ -15,9 +15,15 @@ const std::vector<std::pair<cv::MorphTypes, std::string>>
         // MORPH_CLOSE
         {cv::MORPH_TOPHAT, "MORPH_TOPHAT"}};
 
-//const cv::Rect kAnalogSpeedMeterCoordinates{-415, -520, 415, 360};
+// const cv::Rect kAnalogSpeedMeterCoordinates{-415, -520, 415, 360};
 const cv::Rect kAnalogSpeedMeterCoordinates{-615, -770, 590, 510};
 const cv::Rect kTelltalesPanelCoordinates{-1800, -400, 1700, 300};
+
+void DrawTextValue(cv::Mat &image, const cv::Point &left_bottom_point,
+                   const std::string &text) {
+  cv::putText(image, text, left_bottom_point, cv::FONT_HERSHEY_DUPLEX, 1.0,
+              CV_RGB(118, 185, 0), 2);
+}
 
 } // namespace
 
@@ -51,6 +57,9 @@ int main() {
           analog_meter_frame_window->second > frame_index) {
         asm_detector.SetImage(frame);
         asm_detector.ApplyHoughLinesP();
+        DrawTextValue(frame, cv::Point{frame.cols - 500, 100},
+                      "Detected speed is " +
+                          std::to_string(asm_detector.GetAngle()));
       }
 
       if (analog_meter_frame_window->second < frame_index) {
