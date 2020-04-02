@@ -31,7 +31,7 @@ void AnalogMeterDetector::SetImage(const cv::Mat &image) {
       analog_meter_start_coordinates_.x, analog_meter_start_coordinates_.y,
       analog_meter_coordinates_.width, analog_meter_coordinates_.height});
 
-  static const int kShiftByAxisY = 25;
+  static const int kShiftByAxisY = 35;
   reference_line_ = {
       cv::Point(analog_meter_start_coordinates_.x +
                     analog_meter_coordinates_.width / 2,
@@ -152,6 +152,20 @@ int AnalogMeterDetector::CalculateAngleRelativeToReferenceLine(
   return angle_at_degrees;
 }
 
+bool IsLineAtDigitalMeterArea(const cv::Point &center_point,
+                              const Line &detected_line) {
+  static const int kSpeedDigitsArea = 100;
+
+  if ((detected_line.start_coord.x > center_point.x - kSpeedDigitsArea) &&
+      (detected_line.start_coord.x < center_point.x + kSpeedDigitsArea) &&
+      (detected_line.start_coord.y > center_point.y - kSpeedDigitsArea) &&
+      (detected_line.start_coord.y < center_point.y + kSpeedDigitsArea)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
 void AnalogMeterDetector::ApplyHoughLinesP() {
   cv::Mat line_edges;
   cv::morphologyEx(grey_edges_, line_edges, morph_type_, kKernel);
@@ -168,6 +182,10 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
                    analog_meter_start_coordinates_.y + lines[i][1]),
          cv::Point(analog_meter_start_coordinates_.x + lines[i][2],
                    analog_meter_start_coordinates_.y + lines[i][3])});
+
+    // skip lines detected at numbers area
+    if (IsLineAtDigitalMeterArea(reference_line_.start_coord, detected_line))
+      continue;
 
     cv::line(origin_image_, detected_line.start_coord, detected_line.end_coord,
              cv::Scalar(0, 0, 255), 3, cv::LINE_AA);
@@ -186,8 +204,10 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
 
     int angle = CalculateAngleRelativeToReferenceLine(detected_line);
 
-    std::cout << "(x,y) = (" << lines[i][0] << "," << lines[i][1] << ")"
-              << "; (x,y) = (" << lines[i][2] << "," << lines[i][3] << ")"
+    std::cout << "(x,y) = (" << detected_line.start_coord.x << ","
+              << detected_line.start_coord.y << ")"
+              << "; (x,y) = (" << detected_line.end_coord.x << ","
+              << detected_line.end_coord.y << ")"
               << "; cos = " << angle << std::endl;
   }
 
