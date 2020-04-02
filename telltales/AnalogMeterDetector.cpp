@@ -190,18 +190,6 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
     cv::line(origin_image_, detected_line.start_coord, detected_line.end_coord,
              cv::Scalar(0, 0, 255), 3, cv::LINE_AA);
 
-    //--------------------------- visual DBG section
-    cv::circle(origin_image_, detected_line.start_coord, 5,
-               cv::Scalar(0, 255, 0));
-
-    cv::line(origin_image_, reference_line_.start_coord,
-             reference_line_.end_coord, cv::Scalar(0, 255, 0), 3, cv::LINE_AA);
-
-    cv::circle(origin_image_, reference_line_.start_coord, 5,
-               cv::Scalar(0, 0, 255));
-
-    //-------------------
-
     int angle = CalculateAngleRelativeToReferenceLine(detected_line);
 
     std::cout << "(x,y) = (" << detected_line.start_coord.x << ","
