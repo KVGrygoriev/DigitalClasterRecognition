@@ -21,11 +21,13 @@ public:
   void SetMorphTypeTransformation(const cv::MorphTypes &morph_type,
                                   std::string headline_hint);
 
+  int GetAngle() const;
+
   void ApplyHoughLines();
   void ApplyHoughLinesP();
 
   Line TurnLineInOppositeDirectionToReferenceLine(const Line &in) const;
-  int CalculateAngleRelativeToReferenceLine(const Line& line) const;
+  int CalculateAngleRelativeToReferenceLine(const Line &line) const;
 
 private:
   const cv::Rect analog_meter_coordinates_;
@@ -38,4 +40,6 @@ private:
   cv::MorphTypes morph_type_;
   std::string headline_hint_;
   const cv::Mat kKernel = cv::Mat(5, 5, CV_8UC1, cv::Scalar(1));
+
+  int detected_angle_ = 0;
 };

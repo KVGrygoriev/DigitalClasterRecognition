@@ -190,15 +190,14 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
     cv::line(origin_image_, detected_line.start_coord, detected_line.end_coord,
              cv::Scalar(0, 0, 255), 3, cv::LINE_AA);
 
-    int angle = CalculateAngleRelativeToReferenceLine(detected_line);
+    detected_angle_ = CalculateAngleRelativeToReferenceLine(detected_line);
 
     std::cout << "(x,y) = (" << detected_line.start_coord.x << ","
               << detected_line.start_coord.y << ")"
               << "; (x,y) = (" << detected_line.end_coord.x << ","
               << detected_line.end_coord.y << ")"
-              << "; cos = " << angle << std::endl;
+              << "; cos = " << detected_angle_ << std::endl;
   }
-
-  // cv::imshow(headline_hint_ + " HoughLinesP", origin_image_);
-  // cv::waitKey(0);
 }
+
+int AnalogMeterDetector::GetAngle() const { return detected_angle_; }
