@@ -17,17 +17,26 @@ public:
   void SetImage(const cv::Mat &image);
   void SetMorphTypeTransformation(const cv::MorphTypes &morph_type,
                                   std::string headline_hint);
-
   int GetAngle() const;
 
+  /**
+   * The method performs image processing
+   */
+  void Process();
+
+private:
   void ApplyHoughLinesP();
 
-  types::Line TurnLineInOppositeDirectionToReferenceLine(const types::Line &in) const;
+  types::Line
+  TurnLineInOppositeDirectionToReferenceLine(const types::Line &in) const;
   int CalculateAngleRelativeToReferenceLine(const types::Line &line) const;
 
 private:
+  // a rect to cut only desired image area
   const cv::Rect analog_meter_coordinates_;
+  // for restore global image's coordinates after detection
   cv::Point analog_meter_start_coordinates_;
+  // a line to help calculate arrow angle
   types::Line reference_line_;
 
   cv::Mat origin_image_;

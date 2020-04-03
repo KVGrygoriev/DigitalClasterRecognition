@@ -65,7 +65,7 @@ int main() {
       if (analog_meter_frame_window->first < frame_index &&
           analog_meter_frame_window->second > frame_index) {
         asm_detector.SetImage(frame);
-        asm_detector.ApplyHoughLinesP();
+        asm_detector.Process();
 
         DrawTextValue(frame, cv::Point{frame.cols - 500, 70},
                       "Detected angle is " +

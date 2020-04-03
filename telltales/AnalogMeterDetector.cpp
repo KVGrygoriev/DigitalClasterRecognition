@@ -49,6 +49,7 @@ void AnalogMeterDetector::SetImage(const cv::Mat &image) {
       cv::Point{grey_edges_.cols + analog_meter_coordinates_.x,
                 grey_edges_.rows + analog_meter_coordinates_.y};
 
+  // cut only desired zone
   grey_edges_ = grey_edges_(cv::Rect{
       analog_meter_start_coordinates_.x, analog_meter_start_coordinates_.y,
       analog_meter_coordinates_.width, analog_meter_coordinates_.height});
@@ -70,6 +71,8 @@ void AnalogMeterDetector::SetMorphTypeTransformation(
   morph_type_ = morph_type;
   headline_hint_ = std::move(headline_hint);
 }
+
+void AnalogMeterDetector::Process() { ApplyHoughLinesP(); }
 
 Line AnalogMeterDetector::TurnLineInOppositeDirectionToReferenceLine(
     const Line &in) const {
@@ -144,6 +147,19 @@ int AnalogMeterDetector::CalculateAngleRelativeToReferenceLine(
   return angle_at_degrees;
 }
 
+void CleanNoiseValues(const types::Line &reference_line,
+                      std::vector<cv::Vec4i> &lines) {
+  // remove lines detected at numbers area
+  lines.erase(
+      remove_if(lines.begin(), lines.end(),
+                [reference_line = reference_line](const cv::Vec4i &points) {
+                  return IsLineAtDigitalMeterArea(
+                      reference_line.start_coord,
+                      {{points[0], points[1]}, {points[2], points[3]}});
+                }),
+      lines.end());
+}
+
 void AnalogMeterDetector::ApplyHoughLinesP() {
   cv::Mat line_edges;
   cv::morphologyEx(grey_edges_, line_edges, morph_type_, kKernel);
@@ -163,15 +179,7 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
     line_coordinates[3] += analog_meter_start_coordinates_.y;
   }
 
-  // remove lines detected at numbers area
-  lines.erase(
-      remove_if(lines.begin(), lines.end(),
-                [reference_line = reference_line_](const cv::Vec4i &points) {
-                  return IsLineAtDigitalMeterArea(
-                      reference_line.start_coord,
-                      {{points[0], points[1]}, {points[2], points[3]}});
-                }),
-      lines.end());
+  CleanNoiseValues(reference_line_, lines);
 
   if (lines.empty())
     return;
@@ -186,6 +194,7 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
   detected_angle_ = CalculateAngleRelativeToReferenceLine(interpolated_line);
 
   /*
+  // Print line's coordinates
   std::cout << "(x,y) = (" << interpolated_line.start_coord.x << ","
             << interpolated_line.start_coord.y << ")"
             << "; (x,y) = (" << interpolated_line.end_coord.x << ","
@@ -194,6 +203,7 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
             */
 
   /*
+  // Draw all detected lines
   for (size_t i = 0; i < lines.size(); i++) {
     cv::line(origin_image_, detected_line.start_coord, detected_line.end_coord,
              cv::Scalar(0, 0, 255), 3, cv::LINE_AA);
