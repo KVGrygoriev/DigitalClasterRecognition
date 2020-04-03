@@ -40,6 +40,10 @@ AnalogMeterDetector::AnalogMeterDetector(
     : analog_meter_coordinates_(analog_speed_meter_coordinates),
       morph_type_(morph_type), headline_hint_(std::move(headline_hint)) {}
 
+void AnalogMeterDetector::UseOnlyLeftHemisphere() {
+  only_left_semisphere_ = true;
+}
+
 void AnalogMeterDetector::SetImage(const cv::Mat &image) {
   // origin_image_ = image.clone();
   origin_image_ = image;
@@ -147,15 +151,34 @@ int AnalogMeterDetector::CalculateAngleRelativeToReferenceLine(
   return angle_at_degrees;
 }
 
+/**
+ * Removes lines detected at numbers area
+ */
 void CleanNoiseValues(const types::Line &reference_line,
                       std::vector<cv::Vec4i> &lines) {
-  // remove lines detected at numbers area
   lines.erase(
       remove_if(lines.begin(), lines.end(),
                 [reference_line = reference_line](const cv::Vec4i &points) {
                   return IsLineAtDigitalMeterArea(
                       reference_line.start_coord,
                       {{points[0], points[1]}, {points[2], points[3]}});
+                }),
+      lines.end());
+}
+
+/**
+ * Removes lines located at right semi-sphere
+ */
+void LeaveOnlyLeftSemispgere(const types::Line &reference_line,
+                             std::vector<cv::Vec4i> &lines) {
+  lines.erase(
+      remove_if(lines.begin(), lines.end(),
+                [reference_line = reference_line](const cv::Vec4i &points) {
+                  if ((reference_line.start_coord.x < points[0]) ||
+                      (reference_line.start_coord.x < points[2])) {
+                    return true;
+                  }
+                  return false;
                 }),
       lines.end());
 }
@@ -181,6 +204,9 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
 
   CleanNoiseValues(reference_line_, lines);
 
+  if (only_left_semisphere_)
+    LeaveOnlyLeftSemispgere(reference_line_, lines);
+
   if (lines.empty())
     return;
 
@@ -204,9 +230,10 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
 
   /*
   // Draw all detected lines
-  for (size_t i = 0; i < lines.size(); i++) {
-    cv::line(origin_image_, detected_line.start_coord, detected_line.end_coord,
-             cv::Scalar(0, 0, 255), 3, cv::LINE_AA);
+  for (auto &line_coordinates : lines) {
+    cv::line(origin_image_, {line_coordinates[0], line_coordinates[1]},
+             {line_coordinates[2], line_coordinates[3]}, cv::Scalar(0, 0, 255),
+             3, cv::LINE_AA);
   }
   */
 }

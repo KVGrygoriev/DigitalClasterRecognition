@@ -19,6 +19,8 @@ public:
                                   std::string headline_hint);
   int GetAngle() const;
 
+  void UseOnlyLeftHemisphere();
+
   /**
    * The method performs image processing
    */
@@ -38,6 +40,9 @@ private:
   cv::Point analog_meter_start_coordinates_;
   // a line to help calculate arrow angle
   types::Line reference_line_;
+
+  // as a workaround for RPM, cause it meter might be not only circle
+  bool only_left_semisphere_;
 
   cv::Mat origin_image_;
   cv::Mat grey_edges_;

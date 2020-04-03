@@ -16,9 +16,20 @@ const std::vector<std::pair<cv::MorphTypes, std::string>>
         // MORPH_CLOSE
         {cv::MORPH_TOPHAT, "MORPH_TOPHAT"}};
 
-// const cv::Rect kAnalogSpeedMeterCoordinates{-415, -520, 415, 360};
-const cv::Rect kAnalogSpeedMeterCoordinates{-615, -770, 590, 510};
-const cv::Rect kTelltalesPanelCoordinates{-1800, -400, 1700, 300};
+const int kZeroAnglePointAtAnalogMeter = 228;
+const cv::Size kFrameSize = {1920, 1080};
+const int kStartSpeedMeterZoneX = -615;
+const int kStartSpeedMeterZoneY = -770;
+const int kStartRPMMeterZoneX = -1900;
+const int kStartRPMMeterZoneY = -770;
+const int kStartTelltalesZoneX = -1800;
+const int kStartTelltalesZoneY = -400;
+const cv::Rect kAnalogSpeedMeterCoordinates{kStartSpeedMeterZoneX,
+                                            kStartSpeedMeterZoneY, 590, 510};
+const cv::Rect kAnalogRPMMeterCoordinates{kStartRPMMeterZoneX,
+                                          kStartRPMMeterZoneY, 590, 510};
+const cv::Rect kTelltalesPanelCoordinates{kStartTelltalesZoneX,
+                                          kStartTelltalesZoneY, 1700, 300};
 
 void DrawTextValue(cv::Mat &image, const cv::Point &left_bottom_point,
                    const std::string &text) {
@@ -27,18 +38,27 @@ void DrawTextValue(cv::Mat &image, const cv::Point &left_bottom_point,
 }
 
 inline int AngleToSpeed(int angle) {
-  static const int kZeroSpeedAngle = 228;
   static const double kOneDegreeToSpeed = 1.75;
-  int speed_value =
-      static_cast<int>(round((kZeroSpeedAngle - angle) / kOneDegreeToSpeed));
+  int speed_value = static_cast<int>(
+      round((kZeroAnglePointAtAnalogMeter - angle) / kOneDegreeToSpeed));
   return speed_value < 0 ? 0 : speed_value;
+}
+
+inline int AngleToRPM(int angle) {
+  static const double kOneDegreeToRPM = 0.035;
+  int rpm_value = static_cast<int>(
+      round((kZeroAnglePointAtAnalogMeter - angle) / kOneDegreeToRPM));
+  return rpm_value < 0 ? 0 : rpm_value;
 }
 
 } // namespace
 
 int main() {
-  AnalogMeterDetector asm_detector(kAnalogSpeedMeterCoordinates,
-                                   cv::MORPH_TOPHAT, "MORPH_TOPHAT");
+  AnalogMeterDetector speed_detector(kAnalogSpeedMeterCoordinates,
+                                     cv::MORPH_TOPHAT, "MORPH_TOPHAT");
+  AnalogMeterDetector rpm_detector(kAnalogRPMMeterCoordinates, cv::MORPH_TOPHAT,
+                                   "MORPH_TOPHAT");
+  rpm_detector.UseOnlyLeftHemisphere();
 
   TelltalesDetector telltales_detector(kTelltalesPanelCoordinates);
   if (!telltales_detector.GetTellTalesCount()) {
@@ -56,6 +76,10 @@ int main() {
   auto analog_meter_frame_window = kAnalogMeterFrameBoundaries.begin();
 
   while (video_manager.GetFrame(frame)) {
+    if (frame.size() != kFrameSize) {
+      std::cerr << "Frame size is too small for current settings!";
+      return 1;
+    }
 
     telltales_detector.SetImage(frame);
     telltales_detector.Detect();
@@ -64,16 +88,30 @@ int main() {
     if (analog_meter_frame_window != kAnalogMeterFrameBoundaries.end()) {
       if (analog_meter_frame_window->first < frame_index &&
           analog_meter_frame_window->second > frame_index) {
-        asm_detector.SetImage(frame);
-        asm_detector.Process();
+        // speed detection
+        speed_detector.SetImage(frame);
+        speed_detector.Process();
 
         DrawTextValue(frame, cv::Point{frame.cols - 500, 70},
                       "Detected angle is " +
-                          std::to_string(asm_detector.GetAngle()));
+                          std::to_string(speed_detector.GetAngle()));
         DrawTextValue(
             frame, cv::Point{frame.cols - 500, 100},
             "Approximately speed is " +
-                std::to_string(AngleToSpeed(asm_detector.GetAngle())));
+                std::to_string(AngleToSpeed(speed_detector.GetAngle())));
+
+        // RPM detection
+        rpm_detector.SetImage(frame);
+        rpm_detector.Process();
+
+        DrawTextValue(frame, cv::Point{100, 70},
+                      "Detected angle is " +
+                          std::to_string(rpm_detector.GetAngle()));
+        DrawTextValue(frame, cv::Point{100, 100},
+                      "Approximately RPM is " +
+                          std::to_string(AngleToRPM(rpm_detector.GetAngle())));
+
+        // cv::waitKey(150);
       }
 
       if (analog_meter_frame_window->second < frame_index) {
