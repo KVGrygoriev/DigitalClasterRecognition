@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(demo_telltales LANGUAGES CXX)
+project(DigitalClasterRecognition LANGUAGES CXX)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -25,14 +25,14 @@ find_package(OpenCV 3.3.1 REQUIRED
     highgui
 )
 
-add_executable(demo_telltales
+add_executable(DigitalClasterRecognition
   AnalogMeterDetector.cpp
   TelltalesDetector.cpp
   VideoManager.cpp
   main.cpp
 )
 
-target_compile_options(demo_telltales PRIVATE
+target_compile_options(DigitalClasterRecognition PRIVATE
     -Werror
     -Wall
     -Wextra
@@ -50,7 +50,7 @@ target_compile_options(demo_telltales PRIVATE
     -Wsign-conversion
     -Wsign-promo)
 
-target_link_libraries(demo_telltales
+target_link_libraries(DigitalClasterRecognition
      stdc++fs
      ${CMAKE_THREAD_LIBS_INIT}
      ${OpenCV_LIBS})
