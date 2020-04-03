@@ -5,32 +5,9 @@
 #include "AnalogMeterDetector.h"
 #include "TelltalesDetector.h"
 #include "VideoManager.h"
+#include "DetectionSettings.h"
 
 namespace {
-const std::vector<std::pair<int, int>> kAnalogMeterFrameBoundaries{
-    {250, 300}, {460, 580}, {670, 810}, {890, 915}, {925, 965}};
-
-const std::vector<std::pair<cv::MorphTypes, std::string>>
-    transformation_type_array{
-        //{cv::MORPH_CLOSE, "MORPH_CLOSE"}, // has worse results than
-        // MORPH_CLOSE
-        {cv::MORPH_TOPHAT, "MORPH_TOPHAT"}};
-
-const int kZeroAnglePointAtAnalogMeter = 228;
-const cv::Size kFrameSize = {1920, 1080};
-const int kStartSpeedMeterZoneX = -615;
-const int kStartSpeedMeterZoneY = -770;
-const int kStartRPMMeterZoneX = -1900;
-const int kStartRPMMeterZoneY = -770;
-const int kStartTelltalesZoneX = -1800;
-const int kStartTelltalesZoneY = -400;
-const cv::Rect kAnalogSpeedMeterCoordinates{kStartSpeedMeterZoneX,
-                                            kStartSpeedMeterZoneY, 590, 510};
-const cv::Rect kAnalogRPMMeterCoordinates{kStartRPMMeterZoneX,
-                                          kStartRPMMeterZoneY, 590, 510};
-const cv::Rect kTelltalesPanelCoordinates{kStartTelltalesZoneX,
-                                          kStartTelltalesZoneY, 1700, 300};
-
 void DrawTextValue(cv::Mat &image, const cv::Point &left_bottom_point,
                    const std::string &text) {
   cv::putText(image, text, left_bottom_point, cv::FONT_HERSHEY_DUPLEX, 1.0,
@@ -40,27 +17,27 @@ void DrawTextValue(cv::Mat &image, const cv::Point &left_bottom_point,
 inline int AngleToSpeed(int angle) {
   static const double kOneDegreeToSpeed = 1.75;
   int speed_value = static_cast<int>(
-      round((kZeroAnglePointAtAnalogMeter - angle) / kOneDegreeToSpeed));
+      round((settings::kZeroAnglePointAtAnalogMeter - angle) / kOneDegreeToSpeed));
   return speed_value < 0 ? 0 : speed_value;
 }
 
 inline int AngleToRPM(int angle) {
   static const double kOneDegreeToRPM = 0.035;
   int rpm_value = static_cast<int>(
-      round((kZeroAnglePointAtAnalogMeter - angle) / kOneDegreeToRPM));
+      round((settings::kZeroAnglePointAtAnalogMeter - angle) / kOneDegreeToRPM));
   return rpm_value < 0 ? 0 : rpm_value;
 }
 
 } // namespace
 
 int main() {
-  AnalogMeterDetector speed_detector(kAnalogSpeedMeterCoordinates,
+  AnalogMeterDetector speed_detector(settings::kAnalogSpeedMeterCoordinates,
                                      cv::MORPH_TOPHAT, "MORPH_TOPHAT");
-  AnalogMeterDetector rpm_detector(kAnalogRPMMeterCoordinates, cv::MORPH_TOPHAT,
+  AnalogMeterDetector rpm_detector(settings::kAnalogRPMMeterCoordinates, cv::MORPH_TOPHAT,
                                    "MORPH_TOPHAT");
   rpm_detector.UseOnlyLeftHemisphere();
 
-  TelltalesDetector telltales_detector(kTelltalesPanelCoordinates);
+  TelltalesDetector telltales_detector(settings::kTelltalesPanelCoordinates);
   if (!telltales_detector.GetTellTalesCount()) {
     std::cerr << "Icon list is empty";
     return 1;
@@ -73,10 +50,10 @@ int main() {
   std::cout << "Start grabbing" << std::endl
             << "Press Esc key to terminate" << std::endl;
   long long frame_index = 0;
-  auto analog_meter_frame_window = kAnalogMeterFrameBoundaries.begin();
+  auto analog_meter_frame_window = settings::kAnalogMeterFrameBoundaries.begin();
 
   while (video_manager.GetFrame(frame)) {
-    if (frame.size() != kFrameSize) {
+    if (frame.size() != settings::kFrameSize) {
       std::cerr << "Frame size is too small for current settings!";
       return 1;
     }
@@ -85,7 +62,7 @@ int main() {
     telltales_detector.Detect();
 
     // perform analog meter widget recognition only when it visible
-    if (analog_meter_frame_window != kAnalogMeterFrameBoundaries.end()) {
+    if (analog_meter_frame_window != settings::kAnalogMeterFrameBoundaries.end()) {
       if (analog_meter_frame_window->first < frame_index &&
           analog_meter_frame_window->second > frame_index) {
         // speed detection
