@@ -5,8 +5,16 @@
 #include <opencv2/imgproc.hpp>
 
 namespace settings {
-const std::vector<std::pair<int, int>> kAnalogMeterFrameBoundaries{
-    {250, 300}, {460, 580}, {670, 810}, {890, 915}, {925, 965}};
+struct RecognitionInfo {
+  int first_frame;
+  int last_frame;
+
+  bool speed_recognition;
+  bool rpm_recognition;
+
+  double speed_degree_coef;
+  double rpm_degree_coef;
+};
 
 const std::vector<std::pair<cv::MorphTypes, std::string>>
     transformation_type_array{

@@ -3,9 +3,9 @@
 #include <vector>
 
 #include "AnalogMeterDetector.h"
+#include "DetectionSettings.h"
 #include "TelltalesDetector.h"
 #include "VideoManager.h"
-#include "DetectionSettings.h"
 
 namespace {
 void DrawTextValue(cv::Mat &image, const cv::Point &left_bottom_point,
@@ -14,27 +14,42 @@ void DrawTextValue(cv::Mat &image, const cv::Point &left_bottom_point,
               CV_RGB(118, 185, 0), 2);
 }
 
-inline int AngleToSpeed(int angle) {
-  static const double kOneDegreeToSpeed = 1.75;
+inline int AngleToSpeed(int angle, double degree_coef) {
   int speed_value = static_cast<int>(
-      round((settings::kZeroAnglePointAtAnalogMeter - angle) / kOneDegreeToSpeed));
+      round((settings::kZeroAnglePointAtAnalogMeter - angle) / degree_coef));
   return speed_value < 0 ? 0 : speed_value;
 }
 
-inline int AngleToRPM(int angle) {
-  static const double kOneDegreeToRPM = 0.035;
+inline int AngleToRPM(int angle, double degree_coef) {
   int rpm_value = static_cast<int>(
-      round((settings::kZeroAnglePointAtAnalogMeter - angle) / kOneDegreeToRPM));
+      round((settings::kZeroAnglePointAtAnalogMeter - angle) / degree_coef));
   return rpm_value < 0 ? 0 : rpm_value;
+}
+
+std::vector<settings::RecognitionInfo> GetRecognitionInfo() {
+  std::vector<settings::RecognitionInfo> recognition_settings;
+  recognition_settings.emplace_back(
+      settings::RecognitionInfo{250, 300, true, true, 1.75, 0.035});
+  recognition_settings.emplace_back(
+      settings::RecognitionInfo{460, 580, true, true, 1.75, 0.035});
+  recognition_settings.emplace_back(
+      settings::RecognitionInfo{670, 810, true, true, 1.75, 0.035});
+  recognition_settings.emplace_back(
+      settings::RecognitionInfo{890, 915, true, true, 1.75, 0.035});
+  recognition_settings.emplace_back(
+      settings::RecognitionInfo{925, 965, true, true, 1.75, 0.035});
+  return recognition_settings;
 }
 
 } // namespace
 
 int main() {
+  auto recognition_settings = GetRecognitionInfo();
+
   AnalogMeterDetector speed_detector(settings::kAnalogSpeedMeterCoordinates,
                                      cv::MORPH_TOPHAT, "MORPH_TOPHAT");
-  AnalogMeterDetector rpm_detector(settings::kAnalogRPMMeterCoordinates, cv::MORPH_TOPHAT,
-                                   "MORPH_TOPHAT");
+  AnalogMeterDetector rpm_detector(settings::kAnalogRPMMeterCoordinates,
+                                   cv::MORPH_TOPHAT, "MORPH_TOPHAT");
   rpm_detector.UseOnlyLeftHemisphere();
 
   TelltalesDetector telltales_detector(settings::kTelltalesPanelCoordinates);
@@ -50,7 +65,7 @@ int main() {
   std::cout << "Start grabbing" << std::endl
             << "Press Esc key to terminate" << std::endl;
   long long frame_index = 0;
-  auto analog_meter_frame_window = settings::kAnalogMeterFrameBoundaries.begin();
+  auto recognition_settings_it = recognition_settings.begin();
 
   while (video_manager.GetFrame(frame)) {
     if (frame.size() != settings::kFrameSize) {
@@ -62,37 +77,44 @@ int main() {
     telltales_detector.Detect();
 
     // perform analog meter widget recognition only when it visible
-    if (analog_meter_frame_window != settings::kAnalogMeterFrameBoundaries.end()) {
-      if (analog_meter_frame_window->first < frame_index &&
-          analog_meter_frame_window->second > frame_index) {
+    if (recognition_settings_it != recognition_settings.end()) {
+      if (recognition_settings_it->first_frame < frame_index &&
+          recognition_settings_it->last_frame > frame_index) {
         // speed detection
-        speed_detector.SetImage(frame);
-        speed_detector.Process();
+        if (recognition_settings_it->speed_recognition) {
+          speed_detector.SetImage(frame);
+          speed_detector.Process();
 
-        DrawTextValue(frame, cv::Point{frame.cols - 500, 70},
-                      "Detected angle is " +
-                          std::to_string(speed_detector.GetAngle()));
-        DrawTextValue(
-            frame, cv::Point{frame.cols - 500, 100},
-            "Approximately speed is " +
-                std::to_string(AngleToSpeed(speed_detector.GetAngle())));
+          DrawTextValue(frame, cv::Point{frame.cols - 500, 70},
+                        "Detected angle is " +
+                            std::to_string(speed_detector.GetAngle()));
+          DrawTextValue(frame, cv::Point{frame.cols - 500, 100},
+                        "Approximately speed is " +
+                            std::to_string(AngleToSpeed(
+                                speed_detector.GetAngle(),
+                                recognition_settings_it->speed_degree_coef)));
+        }
 
         // RPM detection
-        rpm_detector.SetImage(frame);
-        rpm_detector.Process();
+        if (recognition_settings_it->rpm_recognition) {
+          rpm_detector.SetImage(frame);
+          rpm_detector.Process();
 
-        DrawTextValue(frame, cv::Point{100, 70},
-                      "Detected angle is " +
-                          std::to_string(rpm_detector.GetAngle()));
-        DrawTextValue(frame, cv::Point{100, 100},
-                      "Approximately RPM is " +
-                          std::to_string(AngleToRPM(rpm_detector.GetAngle())));
+          DrawTextValue(frame, cv::Point{100, 70},
+                        "Detected angle is " +
+                            std::to_string(rpm_detector.GetAngle()));
+          DrawTextValue(frame, cv::Point{100, 100},
+                        "Approximately RPM is " +
+                            std::to_string(AngleToRPM(
+                                rpm_detector.GetAngle(),
+                                recognition_settings_it->rpm_degree_coef)));
+        }
 
         // cv::waitKey(150);
       }
 
-      if (analog_meter_frame_window->second < frame_index) {
-        ++analog_meter_frame_window;
+      if (recognition_settings_it->last_frame < frame_index) {
+        ++recognition_settings_it;
       }
     }
 
