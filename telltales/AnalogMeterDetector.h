@@ -5,10 +5,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-struct Line {
-  cv::Point start_coord;
-  cv::Point end_coord;
-};
+#include "Types.h"
 
 class AnalogMeterDetector {
 public:
@@ -26,13 +23,13 @@ public:
   void ApplyHoughLines();
   void ApplyHoughLinesP();
 
-  Line TurnLineInOppositeDirectionToReferenceLine(const Line &in) const;
-  int CalculateAngleRelativeToReferenceLine(const Line &line) const;
+  types::Line TurnLineInOppositeDirectionToReferenceLine(const types::Line &in) const;
+  int CalculateAngleRelativeToReferenceLine(const types::Line &line) const;
 
 private:
   const cv::Rect analog_meter_coordinates_;
   cv::Point analog_meter_start_coordinates_;
-  Line reference_line_;
+  types::Line reference_line_;
 
   cv::Mat origin_image_;
   cv::Mat grey_edges_;

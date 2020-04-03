@@ -1,16 +1,38 @@
 #include "AnalogMeterDetector.h"
 
+#include <algorithm>
 #include <iostream>
 #include <math.h>
 
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include "MathHelpers.h"
+
+using namespace types;
+
+namespace {
 cv::Mat ApplyCannyAlgorithm(const cv::Mat &frame) {
   cv::Mat result;
   cv::cvtColor(frame, result, CV_BGR2GRAY);
   cv::Canny(result, result, 50, 200);
   return result;
 }
+
+bool IsLineAtDigitalMeterArea(const cv::Point &center_point,
+                              const Line &detected_line) {
+  static const int kSpeedDigitsArea = 100;
+
+  if ((detected_line.start_coord.x > center_point.x - kSpeedDigitsArea) &&
+      (detected_line.start_coord.x < center_point.x + kSpeedDigitsArea) &&
+      (detected_line.start_coord.y > center_point.y - kSpeedDigitsArea) &&
+      (detected_line.start_coord.y < center_point.y + kSpeedDigitsArea)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+} // namespace
 
 AnalogMeterDetector::AnalogMeterDetector(
     cv::Rect analog_speed_meter_coordinates, const cv::MorphTypes &morph_type,
@@ -152,52 +174,61 @@ int AnalogMeterDetector::CalculateAngleRelativeToReferenceLine(
   return angle_at_degrees;
 }
 
-bool IsLineAtDigitalMeterArea(const cv::Point &center_point,
-                              const Line &detected_line) {
-  static const int kSpeedDigitsArea = 100;
-
-  if ((detected_line.start_coord.x > center_point.x - kSpeedDigitsArea) &&
-      (detected_line.start_coord.x < center_point.x + kSpeedDigitsArea) &&
-      (detected_line.start_coord.y > center_point.y - kSpeedDigitsArea) &&
-      (detected_line.start_coord.y < center_point.y + kSpeedDigitsArea)) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
 void AnalogMeterDetector::ApplyHoughLinesP() {
   cv::Mat line_edges;
   cv::morphologyEx(grey_edges_, line_edges, morph_type_, kKernel);
   // cv::imshow("morphologyEx for " + headline_hint_, line_edges);
 
-  Line detected_line;
   std::vector<cv::Vec4i> lines;
   cv::HoughLinesP(line_edges, lines, 1, CV_PI / 180, 90, 95, 5);
 
+  if (lines.empty())
+    return;
+
+  // returning to global coordinates. Needs only for drawing
+  for (auto &line_coordinates : lines) {
+    line_coordinates[0] += analog_meter_start_coordinates_.x;
+    line_coordinates[1] += analog_meter_start_coordinates_.y;
+    line_coordinates[2] += analog_meter_start_coordinates_.x;
+    line_coordinates[3] += analog_meter_start_coordinates_.y;
+  }
+
+  // remove lines detected at numbers area
+  lines.erase(
+      remove_if(lines.begin(), lines.end(),
+                [reference_line = reference_line_](const cv::Vec4i &points) {
+                  return IsLineAtDigitalMeterArea(
+                      reference_line.start_coord,
+                      {{points[0], points[1]}, {points[2], points[3]}});
+                }),
+      lines.end());
+
+  if (lines.empty())
+    return;
+
+  Line interpolated_line = TurnLineInOppositeDirectionToReferenceLine(
+      InterpolateToSingleLine(lines));
+
+  cv::line(origin_image_, interpolated_line.start_coord,
+           interpolated_line.end_coord, cv::Scalar(255, 0, 255), 3,
+           cv::LINE_AA);
+
+  detected_angle_ = CalculateAngleRelativeToReferenceLine(interpolated_line);
+
+  /*
+  std::cout << "(x,y) = (" << interpolated_line.start_coord.x << ","
+            << interpolated_line.start_coord.y << ")"
+            << "; (x,y) = (" << interpolated_line.end_coord.x << ","
+            << interpolated_line.end_coord.y << ")"
+            << "; cos = " << detected_angle_ << std::endl;
+            */
+
+  /*
   for (size_t i = 0; i < lines.size(); i++) {
-
-    detected_line = TurnLineInOppositeDirectionToReferenceLine(
-        {cv::Point(analog_meter_start_coordinates_.x + lines[i][0],
-                   analog_meter_start_coordinates_.y + lines[i][1]),
-         cv::Point(analog_meter_start_coordinates_.x + lines[i][2],
-                   analog_meter_start_coordinates_.y + lines[i][3])});
-
-    // skip lines detected at numbers area
-    if (IsLineAtDigitalMeterArea(reference_line_.start_coord, detected_line))
-      continue;
-
     cv::line(origin_image_, detected_line.start_coord, detected_line.end_coord,
              cv::Scalar(0, 0, 255), 3, cv::LINE_AA);
-
-    detected_angle_ = CalculateAngleRelativeToReferenceLine(detected_line);
-
-    std::cout << "(x,y) = (" << detected_line.start_coord.x << ","
-              << detected_line.start_coord.y << ")"
-              << "; (x,y) = (" << detected_line.end_coord.x << ","
-              << detected_line.end_coord.y << ")"
-              << "; cos = " << detected_angle_ << std::endl;
   }
+  */
 }
 
 int AnalogMeterDetector::GetAngle() const { return detected_angle_; }
