@@ -71,36 +71,6 @@ void AnalogMeterDetector::SetMorphTypeTransformation(
   headline_hint_ = std::move(headline_hint);
 }
 
-void AnalogMeterDetector::ApplyHoughLines() {
-  cv::Mat line_edges;
-  cv::morphologyEx(grey_edges_, line_edges, morph_type_, kKernel);
-  // cv::imshow("morphologyEx for " + headline_hint_, line_edges);
-
-  std::vector<cv::Vec2f> lines;
-  cv::HoughLines(line_edges, lines, 1, CV_PI / 180, 10);
-
-  for (const auto &line : lines) {
-    float rho = line[0], theta = line[1];
-    cv::Point pt1, pt2;
-    double a = cos(theta), b = sin(theta);
-    double x0 = a * rho, y0 = b * rho;
-    pt1.x = cvRound(x0 + 1000 * (-b));
-    pt1.y = cvRound(y0 + 1000 * (a));
-    pt2.x = cvRound(x0 - 1000 * (-b));
-    pt2.y = cvRound(y0 - 1000 * (a));
-    cv::line(origin_image_, pt1, pt2, cv::Scalar(0, 0, 255), 3, CV_AA);
-
-    /*
-    std::cout << "rho = " << rho << "; theta = " << theta * 180.0 / CV_PI
-               << "; (x,y) = (" << pt1.x << "," << pt1.y << ")"
-               << "; (x,y) = (" << pt2.x << "," << pt2.y << ")" << std::endl;
-               */
-  }
-
-  cv::imshow(headline_hint_ + " HoughLines", origin_image_);
-  // cv::waitKey(0);
-}
-
 Line AnalogMeterDetector::TurnLineInOppositeDirectionToReferenceLine(
     const Line &in) const {
 

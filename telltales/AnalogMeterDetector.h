@@ -20,7 +20,6 @@ public:
 
   int GetAngle() const;
 
-  void ApplyHoughLines();
   void ApplyHoughLinesP();
 
   types::Line TurnLineInOppositeDirectionToReferenceLine(const types::Line &in) const;
