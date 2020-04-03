@@ -29,7 +29,9 @@ void DrawTextValue(cv::Mat &image, const cv::Point &left_bottom_point,
 inline int AngleToSpeed(int angle) {
   static const int kZeroSpeedAngle = 228;
   static const double kOneDegreeToSpeed = 1.75;
-  return static_cast<int>(round((kZeroSpeedAngle - angle) / kOneDegreeToSpeed));
+  int speed_value =
+      static_cast<int>(round((kZeroSpeedAngle - angle) / kOneDegreeToSpeed));
+  return speed_value < 0 ? 0 : speed_value;
 }
 
 } // namespace
@@ -64,10 +66,14 @@ int main() {
           analog_meter_frame_window->second > frame_index) {
         asm_detector.SetImage(frame);
         asm_detector.ApplyHoughLinesP();
-        DrawTextValue(frame, cv::Point{frame.cols - 500, 100},
-                      "Detected speed is " + std::to_string(AngleToSpeed(
-                                                 asm_detector.GetAngle())));
-        //cv::waitKey(150);
+
+        DrawTextValue(frame, cv::Point{frame.cols - 500, 70},
+                      "Detected angle is " +
+                          std::to_string(asm_detector.GetAngle()));
+        DrawTextValue(
+            frame, cv::Point{frame.cols - 500, 100},
+            "Approximately speed is " +
+                std::to_string(AngleToSpeed(asm_detector.GetAngle())));
       }
 
       if (analog_meter_frame_window->second < frame_index) {
@@ -77,13 +83,6 @@ int main() {
 
     // show live and wait for a key with timeout long enough to show images
     cv::imshow("Cluster", frame);
-
-    /*
-    if (!(frame_index % 10)) {
-      std::cout << frame_index << std::endl;
-      cv::waitKey(10000);
-    }
-    */
 
     ++frame_index;
     if (cv::waitKey(1) >= 0)
