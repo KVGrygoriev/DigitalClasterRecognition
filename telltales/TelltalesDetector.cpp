@@ -41,7 +41,7 @@ cv::Rect DetectPattern(const cv::Mat &frame, const cv::Mat &pattern) {
   cv::minMaxLoc(value, &minVal, &maxVal, &minLoc, &matchLoc);
 
   // If template has not detected return empty Rect
-  if (maxVal > 0.8) {
+  if (maxVal > 0.6) {
     return cv::Rect{matchLoc, cv::Size{pattern.cols, pattern.rows}};
   }
 
