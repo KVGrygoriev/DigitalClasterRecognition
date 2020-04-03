@@ -213,13 +213,13 @@ void AnalogMeterDetector::ApplyHoughLinesP() {
   Line interpolated_line = TurnLineInOppositeDirectionToReferenceLine(
       InterpolateToSingleLine(lines));
 
-  cv::line(origin_image_, interpolated_line.start_coord,
-           interpolated_line.end_coord, cv::Scalar(255, 0, 255), 3,
-           cv::LINE_AA);
-
   detected_angle_ = CalculateAngleRelativeToReferenceLine(interpolated_line);
 
   /*
+  cv::line(origin_image_, interpolated_line.start_coord,
+         interpolated_line.end_coord, cv::Scalar(255, 0, 255), 3,
+         cv::LINE_AA);
+
   // Print line's coordinates
   std::cout << "(x,y) = (" << interpolated_line.start_coord.x << ","
             << interpolated_line.start_coord.y << ")"

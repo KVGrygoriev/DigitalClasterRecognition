@@ -22,6 +22,9 @@ const std::vector<std::pair<cv::MorphTypes, std::string>>
         // MORPH_CLOSE
         {cv::MORPH_TOPHAT, "MORPH_TOPHAT"}};
 
+const double kDegreeToSpeedCoef = 1.75;
+const double kDegreeToRPMCoefFor360= 0.035;
+const double kDegreeToRPMCoefFor180= 0.044;
 const int kZeroAnglePointAtAnalogMeter = 228;
 const cv::Size kFrameSize = {1920, 1080};
 const int kStartSpeedMeterZoneX = -615;

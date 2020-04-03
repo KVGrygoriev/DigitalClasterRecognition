@@ -28,16 +28,33 @@ inline int AngleToRPM(int angle, double degree_coef) {
 
 std::vector<settings::RecognitionInfo> GetRecognitionInfo() {
   std::vector<settings::RecognitionInfo> recognition_settings;
-  recognition_settings.emplace_back(
-      settings::RecognitionInfo{250, 300, true, true, 1.75, 0.035});
-  recognition_settings.emplace_back(
-      settings::RecognitionInfo{460, 580, true, true, 1.75, 0.035});
-  recognition_settings.emplace_back(
-      settings::RecognitionInfo{670, 810, true, true, 1.75, 0.035});
-  recognition_settings.emplace_back(
-      settings::RecognitionInfo{890, 915, true, true, 1.75, 0.035});
-  recognition_settings.emplace_back(
-      settings::RecognitionInfo{925, 965, true, true, 1.75, 0.035});
+  recognition_settings.emplace_back(settings::RecognitionInfo{
+      250, 300, true, true, settings::kDegreeToSpeedCoef,
+      settings::kDegreeToRPMCoefFor360});
+  recognition_settings.emplace_back(settings::RecognitionInfo{
+      460, 560, true, true, settings::kDegreeToSpeedCoef,
+      settings::kDegreeToRPMCoefFor360});
+  recognition_settings.emplace_back(settings::RecognitionInfo{
+      560, 580, true, true, settings::kDegreeToSpeedCoef,
+      settings::kDegreeToRPMCoefFor180}); //
+  recognition_settings.emplace_back(settings::RecognitionInfo{
+      670, 750, true, true, settings::kDegreeToSpeedCoef,
+      settings::kDegreeToRPMCoefFor180}); //
+  recognition_settings.emplace_back(settings::RecognitionInfo{
+      750, 800, true, true, settings::kDegreeToSpeedCoef,
+      settings::kDegreeToRPMCoefFor360});
+  recognition_settings.emplace_back(settings::RecognitionInfo{
+      800, 810, true, true, settings::kDegreeToSpeedCoef,
+      settings::kDegreeToRPMCoefFor180}); //
+  recognition_settings.emplace_back(settings::RecognitionInfo{
+      890, 900, true, true, settings::kDegreeToSpeedCoef,
+      settings::kDegreeToRPMCoefFor360});
+  recognition_settings.emplace_back(settings::RecognitionInfo{
+      900, 915, true, true, settings::kDegreeToSpeedCoef,
+      settings::kDegreeToRPMCoefFor180}); //
+  recognition_settings.emplace_back(settings::RecognitionInfo{
+      925, 965, true, true, settings::kDegreeToSpeedCoef,
+      settings::kDegreeToRPMCoefFor180}); //
   return recognition_settings;
 }
 
@@ -110,7 +127,7 @@ int main() {
                                 recognition_settings_it->rpm_degree_coef)));
         }
 
-        // cv::waitKey(150);
+        //cv::waitKey(100);
       }
 
       if (recognition_settings_it->last_frame < frame_index) {
